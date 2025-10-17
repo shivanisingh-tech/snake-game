@@ -1,11 +1,327 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<module type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager" inherit-compiler-output="true">
-    <exclude-output />
-    <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
-    </content>
-    <orderEntry type="inheritedJdk" />
-    <orderEntry type="sourceFolder" forTests="false" />
-  </component>
-</module>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake and Ladder Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .player-info {
+            text-align: center;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .player1 {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .player2 {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .player1.inactive, .player2.inactive {
+            opacity: 0.5;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin-bottom: 30px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: #e9ecef;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .player-token {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            position: absolute;
+            font-size: 10px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+
+        .token-p1 {
+            background: #ff6b6b;
+        }
+
+        .token-p2 {
+            background: #4ecdc4;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .roll-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .roll-btn:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .roll-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        .dice-display {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+            min-height: 50px;
+        }
+
+        .message {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            margin: 10px 0;
+            min-height: 30px;
+        }
+
+        .winner {
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐍 Snake & Ladder 🪜</h1>
+        
+        <div class="game-info">
+            <div class="player-info player1" id="p1-info">Player 1: 0</div>
+            <div class="player-info player2 inactive" id="p2-info">Player 2: 0</div>
+        </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="dice-display" id="diceDisplay">🎲</div>
+        <div class="message" id="message">Player 1's Turn - Click Roll Dice!</div>
+
+        <div class="controls">
+            <button class="roll-btn" id="rollBtn">Roll Dice</button>
+            <button class="reset-btn" id="resetBtn">New Game</button>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 100;
+        const SNAKES = { 17: 4, 54: 31, 62: 19, 87: 24, 93: 73, 99: 79 };
+        const LADDERS = { 3: 22, 5: 8, 11: 26, 20: 29, 42: 84, 51: 67, 72: 91, 80: 99 };
+
+        let player1Pos = 0;
+        let player2Pos = 0;
+        let currentPlayer = 1;
+        let gameOver = false;
+
+        const board = document.getElementById('board');
+        const diceDisplay = document.getElementById('diceDisplay');
+        const message = document.getElementById('message');
+        const rollBtn = document.getElementById('rollBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const p1Info = document.getElementById('p1-info');
+        const p2Info = document.getElementById('p2-info');
+
+        function initBoard() {
+            board.innerHTML = '';
+            for (let i = BOARD_SIZE; i >= 1; i--) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.textContent = i;
+                cell.id = `cell-${i}`;
+                board.appendChild(cell);
+            }
+        }
+
+        function updatePositions() {
+            document.querySelectorAll('.player-token').forEach(token => token.remove());
+
+            if (player1Pos > 0) {
+                const token = document.createElement('div');
+                token.className = 'player-token token-p1';
+                token.textContent = '1';
+                document.getElementById(`cell-${player1Pos}`).appendChild(token);
+            }
+
+            if (player2Pos > 0) {
+                const token = document.createElement('div');
+                token.className = 'player-token token-p2';
+                token.textContent = '2';
+                document.getElementById(`cell-${player2Pos}`).appendChild(token);
+            }
+        }
+
+        function updateUI() {
+            p1Info.textContent = `Player 1: ${player1Pos}`;
+            p2Info.textContent = `Player 2: ${player2Pos}`;
+            p1Info.classList.toggle('inactive', currentPlayer !== 1);
+            p2Info.classList.toggle('inactive', currentPlayer !== 2);
+            updatePositions();
+        }
+
+        function rollDice() {
+            return Math.floor(Math.random() * 6) + 1;
+        }
+
+        function movePlayer(dice) {
+            let newPos = currentPlayer === 1 ? player1Pos : player2Pos;
+            newPos += dice;
+
+            if (newPos > BOARD_SIZE) {
+                message.textContent = `Player ${currentPlayer} overshot! Stay at ${currentPlayer === 1 ? player1Pos : player2Pos}`;
+                switchPlayer();
+                return;
+            }
+
+            if (SNAKES[newPos]) {
+                const oldPos = newPos;
+                newPos = SNAKES[newPos];
+                message.textContent = `Player ${currentPlayer} rolled ${dice} and landed on a SNAKE! 🐍 ${oldPos} → ${newPos}`;
+            } else if (LADDERS[newPos]) {
+                const oldPos = newPos;
+                newPos = LADDERS[newPos];
+                message.textContent = `Player ${currentPlayer} rolled ${dice} and found a LADDER! 🪜 ${oldPos} → ${newPos}`;
+            } else {
+                message.textContent = `Player ${currentPlayer} rolled ${dice} and moved to ${newPos}`;
+            }
+
+            if (currentPlayer === 1) {
+                player1Pos = newPos;
+            } else {
+                player2Pos = newPos;
+            }
+
+            if (newPos === BOARD_SIZE) {
+                message.innerHTML = `<span class="winner">🎉 Player ${currentPlayer} Won! 🎉</span>`;
+                gameOver = true;
+                rollBtn.disabled = true;
+            } else {
+                switchPlayer();
+            }
+        }
+
+        function switchPlayer() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            diceDisplay.textContent = '🎲';
+        }
+
+        rollBtn.addEventListener('click', () => {
+            if (gameOver) return;
+            const dice = rollDice();
+            diceDisplay.textContent = `🎲 ${dice}`;
+            setTimeout(() => {
+                movePlayer(dice);
+                updateUI();
+            }, 500);
+        });
+
+        resetBtn.addEventListener('click', () => {
+            player1Pos = 0;
+            player2Pos = 0;
+            currentPlayer = 1;
+            gameOver = false;
+            diceDisplay.textContent = '🎲';
+            message.textContent = `Player 1's Turn - Click Roll Dice!`;
+            rollBtn.disabled = false;
+            updateUI();
+        });
+
+        initBoard();
+        updateUI();
+    </script>
+</body>
+</html>
